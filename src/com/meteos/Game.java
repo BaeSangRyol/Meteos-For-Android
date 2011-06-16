@@ -42,6 +42,8 @@ public class Game implements ApplicationListener {
 
 	// current block you're touching
 	private int mi_CurrentBlockRow, mi_CurrentBlockCol;
+	
+	Random generator;
 
 	@Override
 	public void create() {
@@ -66,6 +68,8 @@ public class Game implements ApplicationListener {
 
 		mi_CurrentBlockRow = -1;
 		mi_CurrentBlockRow = -1;
+		
+		generator = new Random();
 	}
 
 	@Override
@@ -131,7 +135,7 @@ public class Game implements ApplicationListener {
 				if (row == mi_CurrentBlockRow && col == mi_CurrentBlockCol) {
 					spriteBatch.setColor(1, 0, 0, 1);
 				} else {
-					float[] color = currentBrick.getMf_Color();
+					float[] color = currentBrick.getColor();
 					spriteBatch
 							.setColor(color[0], color[1], color[2], color[3]);
 				}
@@ -200,7 +204,6 @@ public class Game implements ApplicationListener {
 
 			// pick a random number between 0 and NUMBER_OF_COLUMNS to decide
 			// which column to drop it in
-			Random generator = new Random();
 			int columnToDropIn = generator.nextInt(NUMBER_OF_COLUMNS);
 
 			// check if there is already a brick in the top most level in that
@@ -212,8 +215,11 @@ public class Game implements ApplicationListener {
 				float x, y;
 				x = mBlockWidth * columnToDropIn;
 				y = mScreenHeight - mBlockHeight - mHeaderBuffer; //(mScreenHeight/18) was trial and error to get it to land exactly on the bottom
+				
+				//get a random color
+				int color = generator.nextInt(5);
 				mBricks[0][columnToDropIn] = new Brick(x, y, mBlockHeight,
-						mBlockHeight / 48);
+						mBlockHeight / 48, color);
 
 				// check to see if there is a block below it
 				if (mBricks[1][columnToDropIn] == null) {
