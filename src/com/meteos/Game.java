@@ -101,25 +101,6 @@ public class Game implements ApplicationListener {
 
 		Gdx.gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
 
-		/**
-		 * My algorithm to move the bricks down seemlessly on the screen as well
-		 * as in the code's 2d array:
-		 * 
-		 * When brick is born, it checks to see if there is a new block below it
-		 * and if there isn't, it sets moving down to true if there is a block
-		 * below it right when it's born, well it can't move so set moving down
-		 * to false because it's not going anywhere
-		 * 
-		 * Now when you start rendering, it'll be moving down. Call move down.
-		 * Now after it has been moved, render it and put it on the screen. Then
-		 * after it is moved on the screen, check and see if it's new position
-		 * is it's ending spot from the current move. If it is, then set moving
-		 * down to false and stop, then check if it can move down and start the
-		 * whole process over again
-		 */
-
-
-		
 		addMoreBricks();
 		processInput();
 		simulate();
