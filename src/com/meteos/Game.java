@@ -1,5 +1,6 @@
 package com.meteos;
 
+import java.util.ArrayList;
 import java.util.Random;
 
 import com.badlogic.gdx.ApplicationListener;
@@ -27,6 +28,8 @@ public class Game implements ApplicationListener {
 	private static int NUMBER_OF_ROWS = 9;// 14;
 	private static int NUMBER_OF_COLUMNS = 7;// 11;
 	private Brick[][] mBricks;
+	
+	private ArrayList<Brick> mBlocks[];
 
 	private long mTimeOfLastBrickDrop;
 	private long mTimeBetweenBrickDrops;
@@ -44,6 +47,8 @@ public class Game implements ApplicationListener {
 	private int mi_CurrentBlockRow, mi_CurrentBlockCol;
 	
 	Random generator;
+	
+	private boolean mb_BlockIsFalling = false; //only one block can fall at a time. this says whether or not a block is currently falling
 
 	@Override
 	public void create() {
@@ -52,9 +57,13 @@ public class Game implements ApplicationListener {
 
 		// create the size of the field
 		mBricks = new Brick[NUMBER_OF_ROWS][NUMBER_OF_COLUMNS];
+		
+		mBlocks = new ArrayList[NUMBER_OF_COLUMNS];
+		for ( int i = 0; i < NUMBER_OF_COLUMNS; i++ )
+			mBlocks[i] = new ArrayList<Brick>();
 
 		// set the time between brick drops
-		mTimeBetweenBrickDrops = 10; // 4 seconds. this is all handled in
+		mTimeBetweenBrickDrops = 1000; // 4 seconds. this is all handled in
 										// milliseconds because that's how java
 										// gives me time
 		mTimeBetweenBrickMoves = 500;
@@ -109,59 +118,93 @@ public class Game implements ApplicationListener {
 		 * whole process over again
 		 */
 
+
+		
+		addMoreBricks();
+		processInput();
+		simulate();
+		draw();
+	}
+	
+	private void draw() {
 		spriteBatch.begin();
 		// render all of the bricks
-		for (int row = 0; row < NUMBER_OF_ROWS; row++) {
-			for (int col = 0; col < NUMBER_OF_COLUMNS; col++) {
-				// get the current brick
-				Brick currentBrick = mBricks[row][col];
 
-				// there is nothing to do if there is no brick here
-				if (currentBrick == null)
-					continue;
+		for ( int col = 0; col < NUMBER_OF_COLUMNS; col++ ) {
+			ArrayList currentList = mBlocks[col];
+			if ( currentList == null || currentList.size() == 0)
+				continue;
+			
+			for ( int i = 0; i < currentList.size(); i++) {
+				Brick currentBrick = (Brick)currentList.get(i);
 
-				// some blocks are getting stuck at the top row for no reason,
-				// so this is a check to see if any top row blocks are stuck
-				// when they shouldnt be
-				// and to get them moving if they are
-				// TODO: Find out the cause of this problem and fix it because
-				// this seems inefficient
-				if (row == 0 && mBricks[1][col] == null
-						&& !currentBrick.isMovingDown())
-					currentBrick.setMoveDown(true);
-
-				currentBrick.moveDown();
-
-				if (row == mi_CurrentBlockRow && col == mi_CurrentBlockCol) {
-					spriteBatch.setColor(1, 0, 0, 1);
+				float[] color = currentBrick.getColor();
+				if ( i == mi_CurrentBlockRow && col == mi_CurrentBlockCol && !getBrickAt(i, col).isMovingDown()) {
+					spriteBatch.setColor(0.3f*color[0], 0.3f*color[1], 0.3f*color[2], color[3]);
 				} else {
-					float[] color = currentBrick.getColor();
-					spriteBatch
-							.setColor(color[0], color[1], color[2], color[3]);
+					spriteBatch.setColor(color[0], color[1], color[2], color[3]);
 				}
-
 				spriteBatch.draw(texture,
 						convertNormalXToGLX(currentBrick.getMf_x()),
 						convertNormalYToGLY(currentBrick.getMf_y()),
 						mBlockWidth, mBlockHeight, 0, 0, texture.getWidth(),
 						texture.getHeight(), false, false);
-
-				if (currentBrick.checkIfDoneMoving()) {
-					mBricks[row + 1][col] = currentBrick;
-					mBricks[row][col] = null;
-
-					if (row + 2 != NUMBER_OF_ROWS) {
-						if (mBricks[row + 2][col] == null) {
-							mBricks[row + 1][col].setMoveDown(true);
+			}
+		}
+				
+		spriteBatch.end();
+	}
+	
+	private void simulate() {
+		float bottomOfScreen = -(mScreenHeight/2);
+		for ( int col = 0; col < NUMBER_OF_COLUMNS; col++ ) {
+			ArrayList<Brick> currentList = mBlocks[col];
+			if ( currentList == null || currentList.size() == 0)
+				continue;
+			
+			for ( int i = 0; i < currentList.size(); i++ ) {
+				Brick currentBrick = (Brick)currentList.get(i);
+				float bottomOfCurrentBrick = currentBrick.getMf_y() - mBlockHeight;
+				
+				if ( bottomOfCurrentBrick <= 0.17f) {
+					if ( currentBrick.isMovingDown() ) {
+						currentBrick.setMoveDown(false);
+						mb_BlockIsFalling = false;
+					}
+					continue;	
+				}
+				
+				boolean bCanMoveDown = true;
+				for ( int j = 0; j < currentList.size(); j++ ) {
+					if ( j == i ) continue;
+					
+					Brick tempBrick = (Brick)currentList.get(j);
+					float topOfTempBrick = tempBrick.getMf_y();
+					
+					if ( bottomOfCurrentBrick <= topOfTempBrick ) 
+						bCanMoveDown = false;
+					
+				}
+				
+				if ( bCanMoveDown && currentBrick.isMovingDown())
+					currentBrick.moveDown();
+				else {
+					if ( currentBrick.isMovingDown() ) {
+						currentBrick.setMoveDown(false);
+						mb_BlockIsFalling = false;
+						
+						//if it's not the bottom brick, set it's y position to be a block above the brick below it. this will fix the overlapping error
+						if ( i > 0 ) {
+							Brick brickBelow = currentList.get(i-1);
+							float yBelow = brickBelow.getMf_y();
+							
+							currentBrick.setMf_y(yBelow+mBlockHeight);
+							
 						}
 					}
 				}
 			}
 		}
-		spriteBatch.end();
-		processInput();
-		addMoreBricks();
-
 	}
 
 	private void processInput() {
@@ -182,15 +225,23 @@ public class Game implements ApplicationListener {
 			mi_CurrentBlockCol = (int)r;
 			float yPos = (float)input.y;
 			mi_CurrentBlockRow = (int) ((yPos) / mBlockHeight);
-			mi_CurrentBlockRow = NUMBER_OF_ROWS - mi_CurrentBlockRow - 1; //it was upside down so I needed to flip it
+			mi_CurrentBlockRow = mi_CurrentBlockRow;//NUMBER_OF_ROWS - mi_CurrentBlockRow - 1; //it was upside down so I needed to flip it
 			System.out.println("Row: " + mi_CurrentBlockRow + " - Col: "
 					+ mi_CurrentBlockCol);
+			
+			//Brick grabbedBrick = mBricks[mi_CurrentBlockRow][mi_CurrentBlockCol];
+			//if ( grabbedBrick != null )
+				//grabbedBrick.grab();
 		}
 
 		if (!Gdx.input.isTouched() && isClicking) {
 			System.out.println("Let go of click: at X: " + Gdx.input.getX()
 					+ " - Y: " + Gdx.input.getY());
 			isClicking = false;
+			
+			//Brick grabbedBrick = mBricks[mi_CurrentBlockRow][mi_CurrentBlockCol];
+			//if ( grabbedBrick != null )
+				//grabbedBrick.setMb_IsBeingGrabbed(false);
 
 			mi_CurrentBlockRow = -1;
 			mi_CurrentBlockCol = -1;
@@ -199,36 +250,28 @@ public class Game implements ApplicationListener {
 	}
 
 	private void addMoreBricks() {
-		if (System.currentTimeMillis() - mTimeOfLastBrickDrop > mTimeBetweenBrickDrops) {
+		if (System.currentTimeMillis() - mTimeOfLastBrickDrop > mTimeBetweenBrickDrops && !mb_BlockIsFalling) {
 			// time to throw in a new brick!
 
 			// pick a random number between 0 and NUMBER_OF_COLUMNS to decide
 			// which column to drop it in
 			int columnToDropIn = generator.nextInt(NUMBER_OF_COLUMNS);
 
-			// check if there is already a brick in the top most level in that
-			// column
-			Brick check = mBricks[0][columnToDropIn];
-			if (check != null) {
-				// end the game or something...
+			//first check to see if there is a brick at the top of the column
+			float highestBrick = getHighestBrick(mBlocks[columnToDropIn]);
+			if ( highestBrick > mScreenHeight - mBlockHeight) {
+				return; //end the game or something
 			} else {
-				float x, y;
+				float x,y;
 				x = mBlockWidth * columnToDropIn;
-				y = mScreenHeight - mBlockHeight - mHeaderBuffer; //(mScreenHeight/18) was trial and error to get it to land exactly on the bottom
+				y = mScreenHeight /*- mBlockHeight*/ - mHeaderBuffer; //TODO: Why do i have mBlockHeight in there? it seems like i could get an extra row if i remove that
 				
-				//get a random color
 				int color = generator.nextInt(5);
-				mBricks[0][columnToDropIn] = new Brick(x, y, mBlockHeight,
-						mBlockHeight / 48, color);
-
-				// check to see if there is a block below it
-				if (mBricks[1][columnToDropIn] == null) {
-					// since there isn't set it to be moving
-					mBricks[0][columnToDropIn].setMoveDown(true);
-				}
+				mBlocks[columnToDropIn].add( new Brick(x, y, mBlockHeight, mBlockHeight / 12, color));
 			}
 
 			mTimeOfLastBrickDrop = System.currentTimeMillis();
+			mb_BlockIsFalling = true;
 		}
 	}
 
@@ -261,6 +304,26 @@ public class Game implements ApplicationListener {
 	public void resume() {
 		// TODO Auto-generated method stub
 
+	}
+	
+	/* Methods for the arraylist block algorithms */
+	private float getHighestBrick(ArrayList<Brick> bricks) {
+		float highest = -(mScreenHeight/2.0f); //set the highest to the lowest point
+		
+		if ( bricks == null || bricks.size() == 0)
+			return highest;
+		
+		for ( Brick b : bricks ) {
+			if ( b.getMf_y() > highest )
+				highest = b.getMf_y();
+		}
+		
+		return highest;
+	}
+	
+	private Brick getBrickAt(int row, int col) {
+		ArrayList<Brick> tempList = mBlocks[col];
+		return tempList.get(row);
 	}
 
 }

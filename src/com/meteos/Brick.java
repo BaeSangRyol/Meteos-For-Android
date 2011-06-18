@@ -18,16 +18,30 @@ public class Brick {
 			{ 1.0f, 0.584f, 0.1804f, 1.0f}, //orange
 			{ 1.0f, 0.0f, 0.9647f, 1.0f} //purple
 	};
+	
+	private boolean mb_IsBeingGrabbed;
+	
+	/* All of the methods */
 	public Brick(float x, float y, float blockHeight, float speed, int color) {
 		mf_x = x;
 		mf_y = y;
 		
-		mb_MoveDown = false;
+		mb_MoveDown = true;
 		
 		mf_BlockHeight = blockHeight;
 		mf_Speed = speed;
 		
 		mi_Color = color;
+		
+		mb_IsBeingGrabbed = false;
+	}
+
+	public boolean isMb_IsBeingGrabbed() {
+		return mb_IsBeingGrabbed;
+	}
+
+	public void setMb_IsBeingGrabbed(boolean mb_IsBeingGrabbed) {
+		this.mb_IsBeingGrabbed = mb_IsBeingGrabbed;
 	}
 
 	public float[] getColor() {
@@ -50,14 +64,15 @@ public class Brick {
 		this.mf_y = mf_y;
 	}
 	
+	public void grab() {
+		mb_IsBeingGrabbed = true;
+	}
+	
 	/**
 	 * This method moves the brick's coordinates down graphically
 	 */
 	public void moveDown() {
-		
-		if ( mb_MoveDown)
 			mf_y -= mf_Speed;
-		
 	}
 	
 	/**
@@ -65,14 +80,13 @@ public class Brick {
 	 * @return true if it is done, false if it is still moving
 	 */
 	public boolean checkIfDoneMoving() {
-		if ( mb_MoveDown == false ) {
+		if ( mb_MoveDown == false || mb_IsBeingGrabbed) {
 			return false;
 		}
 		
 		if ( mf_BeginMoveDownY - mf_BlockHeight >= mf_y ) {
 			//yes it is done moving down
 			mb_MoveDown = false;
-			//mf_BeginMoveDownY = mf_y;
 			
 			return true;
 		}
@@ -86,8 +100,6 @@ public class Brick {
 	public void setMoveDown(boolean move) {
 		mb_MoveDown = move;
 		
-		if ( move )
-			mf_BeginMoveDownY = mf_y;
 	}
 	
 	/**
