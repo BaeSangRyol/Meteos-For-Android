@@ -137,7 +137,7 @@ public class Game implements ApplicationListener {
 	}
 	
 	private void simulate() {
-		float bottomOfScreen = -(mScreenHeight/2);
+		float bottomOfScreen = 0.17f;//-(mScreenHeight/2);
 		for ( int col = 0; col < NUMBER_OF_COLUMNS; col++ ) {
 			ArrayList<Brick> currentList = mBlocks[col];
 			if ( currentList == null || currentList.size() == 0)
@@ -147,7 +147,7 @@ public class Game implements ApplicationListener {
 				Brick currentBrick = (Brick)currentList.get(i);
 				float bottomOfCurrentBrick = currentBrick.getMf_y() - mBlockHeight;
 				
-				if ( bottomOfCurrentBrick <= 0.17f) {
+				if ( bottomOfCurrentBrick <= bottomOfScreen) {
 					if ( currentBrick.isMovingDown() ) {
 						currentBrick.setMoveDown(false);
 						mb_BlockIsFalling = false;
@@ -206,7 +206,7 @@ public class Game implements ApplicationListener {
 			mi_CurrentBlockCol = (int)r;
 			float yPos = (float)input.y;
 			mi_CurrentBlockRow = (int) ((yPos) / mBlockHeight);
-			mi_CurrentBlockRow = mi_CurrentBlockRow;//NUMBER_OF_ROWS - mi_CurrentBlockRow - 1; //it was upside down so I needed to flip it
+			//mi_CurrentBlockRow = NUMBER_OF_ROWS - mi_CurrentBlockRow - 1; //it was upside down so I needed to flip it
 			System.out.println("Row: " + mi_CurrentBlockRow + " - Col: "
 					+ mi_CurrentBlockCol);
 			
@@ -226,8 +226,80 @@ public class Game implements ApplicationListener {
 
 			mi_CurrentBlockRow = -1;
 			mi_CurrentBlockCol = -1;
+		} 
+		
+		if ( Gdx.input.isTouched() ) {
+			int tempCol, tempRow;
+			
+			float x = input.x;
+			float r =  (x / mBlockWidth);
+			tempCol = (int)r;
+			float yPos = (float)input.y;
+			tempRow = (int) ((yPos) / mBlockHeight);
+			
+			//System.out.println("Dragging. FromRow: " + mi_CurrentBlockRow + " FromCol: " + mi_CurrentBlockCol +
+			//				   "          ToRow:   " + tempRow +            " ToCol:   " + tempCol);
+			
+			//user is trying to drag a block
+			if (tempRow != mi_CurrentBlockRow ) {
+				System.out.println("Switching rows");
+				ArrayList<Brick> list = mBlocks[mi_CurrentBlockCol];
+				if (list.size() < 2 || mi_CurrentBlockRow >= list.size())
+					return;
+				Brick fromBrick = list.get(mi_CurrentBlockRow);
+				if ( fromBrick == null )
+					return;
+				float fromY = fromBrick.getMf_y();
+				
+				if ( tempRow >= list.size() || tempRow < 0)
+					return;
+				Brick toBrick = list.get(tempRow);
+				
+				if ( toBrick.isMovingDown() )
+					return; //you don't want to be able to switch with a falling block
+				
+				fromBrick.setMf_y(toBrick.getMf_y());
+				
+				toBrick.setMf_y(fromY);
+				
+				
+				list.remove(tempRow);
+				list.add(tempRow, fromBrick);
+				
+				list.remove(mi_CurrentBlockRow);
+				list.add(mi_CurrentBlockRow, toBrick);
+				
+				mi_CurrentBlockRow = tempRow;
+			}
+			
+			/*if ( tempCol != mi_CurrentBlockCol ) {
+				System.out.println("Switching Cols");
+				ArrayList<Brick> fromList = mBlocks[mi_CurrentBlockCol];
+				if (fromList.size() == 0 )
+					return;
+				Brick fromBrick = fromList.get(mi_CurrentBlockRow);
+				if ( fromBrick == null )
+					return;
+				float fromX = fromBrick.getMf_x();
+				float fromY = fromBrick.getMf_y();
+				
+				ArrayList<Brick> toList = mBlocks[tempCol];
+				if ( toList.size() == 0 )
+					return;
+				Brick toBrick = toList.get(tempRow);
+				if ( toBrick == null )
+					return;
+				
+				fromBrick.setMf_x(toBrick.getMf_x());
+				fromBrick.setMf_y(toBrick.getMf_y());
+				
+				toBrick.setMf_x(fromX);
+				toBrick.setMf_y(fromY);
+				
+				mi_CurrentBlockRow = tempRow;
+				mi_CurrentBlockCol = tempCol;
+			}*/
 		}
-
 	}
 
 	private void addMoreBricks() {
